@@ -6,7 +6,7 @@
 
 import { getErrorMessage, isNodeError } from './errors.js';
 import { URL } from 'node:url';
-import { ProxyAgent, setGlobalDispatcher } from 'undici';
+import { Agent, ProxyAgent, setGlobalDispatcher } from 'undici';
 
 const PRIVATE_IP_RANGES = [
   /^10\./,
@@ -58,6 +58,17 @@ export async function fetchWithTimeout(
   }
 }
 
+/**
+ * Enables HTTP/2 for all fetch requests by setting a global undici Agent
+ * with allowH2. This prevents "other side closed" errors caused by HTTP/1.1
+ * connection reuse when the server closes keep-alive connections between
+ * sequential requests (e.g., the classifier request followed by the main
+ * streaming request).
+ */
+export function enableHttp2() {
+  setGlobalDispatcher(new Agent({ allowH2: true }));
+}
+
 export function setGlobalProxy(proxy: string) {
-  setGlobalDispatcher(new ProxyAgent(proxy));
+  setGlobalDispatcher(new ProxyAgent({ uri: proxy, allowH2: true }));
 }
